@@ -753,10 +753,7 @@ impl Builder {
     /// ```
     ///
     /// [`target`]: #method.target
-    pub fn target_pipe<W: io::Write + Send + 'static>(&mut self, target_pipe: W) -> &mut Self {
-        self.writer.target_pipe(target_pipe);
-        self
-    }
+    // TODO fix docs
 
     /// Sets whether or not styles will be written.
     ///

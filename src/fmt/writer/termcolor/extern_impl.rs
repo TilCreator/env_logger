@@ -112,14 +112,14 @@ impl BufferWriter {
     pub(in crate::fmt::writer) fn buffer(&self) -> Buffer {
         Buffer {
             inner: self.inner.buffer(),
-            test_target: self.test_target,
+            test_target: self.test_target.clone(),
         }
     }
 
     pub(in crate::fmt::writer) fn print(&self, buf: &Buffer) -> io::Result<()> {
         if let Some(pipe) = &self.target_pipe {
             pipe.lock().unwrap().write_all(&buf.bytes())
-        } else if let Some(target) = self.test_target {
+        } else if let Some(target) = &self.test_target {
             // This impl uses the `eprint` and `print` macros
             // instead of `termcolor`'s buffer.
             // This is so their output can be captured by `cargo test`
@@ -128,7 +128,7 @@ impl BufferWriter {
             match target {
                 Target::Stderr => eprint!("{}", log),
                 Target::Stdout => print!("{}", log),
-                Target::Pipe => unreachable!(),
+                Target::Pipe(_) => unreachable!(),
             }
 
             Ok(())

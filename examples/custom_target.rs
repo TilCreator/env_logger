@@ -18,22 +18,25 @@ $ export MY_LOG_STYLE=never
 #[macro_use]
 extern crate log;
 
-use env_logger::{Builder, Env};
+use env_logger::{Builder, Env, Target};
 use std::{
     io,
-    sync::mpsc::{channel, Sender},
+    sync::{
+        mpsc::{channel, Sender},
+        Arc, Mutex,
+    },
 };
 
 // This struct is used as an adaptor, it implements io::Write and forwards the buffer to a mpsc::Sender
 struct WriteAdapter {
-    sender: Sender<u8>,
+    sender: Arc<Mutex<Sender<u8>>>,
 }
 
 impl io::Write for WriteAdapter {
     // On write we forward each u8 of the buffer to the sender and return the length of the buffer
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         for chr in buf {
-            self.sender.send(*chr).unwrap();
+            self.sender.lock().unwrap().send(*chr).unwrap();
         }
         Ok(buf.len())
     }
@@ -58,7 +61,9 @@ fn main() {
     Builder::from_env(env)
         // The Sender of the channel is given to the logger
         // The wrapper is used, because Sender itself doesn't implement io::Write
-        .target_pipe(WriteAdapter { sender: rx })
+        .target(Target::Pipe(Arc::new(Mutex::new(Box::new(WriteAdapter {
+            sender: Arc::new(Mutex::new(rx)),
+        })))))
         .init();
 
     trace!("some trace log");
